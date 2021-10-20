@@ -1,11 +1,12 @@
-from rest_framework import exceptions
+from rest_framework import exceptions, viewsets, status, generics, mixins
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
-from . models import User
-from . serializers import UserSerializer
+from . models import User, Permission, Role
+from . serializers import UserSerializer, PermissionSerializer, RoleSerializer
 from . authentication import generate_access_token, JWTAuthentication
+from backend.pagination import CustomPagination
 
 @api_view(['GET'])
 def register(request):
@@ -55,13 +56,132 @@ class AuthenticatedUser(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        serializer = UserSerializer(request.user)
+        data = UserSerializer(request.user).data
+        data['permissions'] = [p['name'] for p in data['role']['permissions']]
+        return Response({
+            'data': data
+        })
+
+class PermissionAPIView(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        serializer = PermissionSerializer(Permission.objects.all(), many=True)
 
         return Response({
             'data': serializer.data
         })
 
-@api_view(['GET'])
-def users(request):
-    serializer = UserSerializer(User.objects.all(), many=True)
-    return Response(serializer.data)
+class RoleViewSet(viewsets.ViewSet):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def list(self, request):
+        serializer = RoleSerializer(Role.objects.all(), many=True)
+
+        return Response({
+            'data': serializer.data
+        })
+
+    def create(self, request):
+        serializer = RoleSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        serializer.save()
+        return Response({
+            'data': serializer.data
+        }, status=status.HTTP_201_CREATED)
+
+    def retrieve(self, request, pk=None):
+        role = Role.objects.get(id=pk)
+        serializer = RoleSerializer(role)
+        return Response({
+            'data': serializer.data
+        })
+
+    def update(self, request, pk=None):
+        role = Role.objects.get(id=pk)
+        serializer = RoleSerializer(instance=role, data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+        return Response({
+            'data': serializer.data
+        }, status=status.HTTP_202_ACCEPTED)
+
+    def destroy(self, request, pk=None):
+        role = Role.objects.get(id=pk)
+        role.delete()
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+class UserGenericAPIView(
+    generics.GenericAPIView, mixins.ListModelMixin, 
+    mixins.RetrieveModelMixin, mixins.UpdateModelMixin, mixins.DestroyModelMixin
+    ):
+
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+    pagination_class = CustomPagination
+    
+    def get(self, request, pk=None):
+        if pk:
+            return Response({
+                'data': self.retrieve(request, pk).data
+            })
+
+        return self.list(request)
+        
+    
+    def post(self, request):
+        request.data.update({
+            'password': 1234,
+            'role': request.data['role_id']
+        })
+
+        return Response({
+            'data': self.create(request).data
+        })
+
+    def put(self, request, pk=None):
+
+        if request.data['role_id']:
+            request.data.update({
+                'role': request.data['role_id']
+            })
+
+        return Response({
+            'data': self.partial_update(request, pk).data
+        })
+
+    def delete(self, request, pk=None):
+        return self.destroy(request, pk)
+        
+class ProfileInfoAPIView(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def put(self, request, pk=None):
+        user = request.user
+        serializer = UserSerializer(user, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
+
+class ProfilePasswordAPIView(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def put(self, request, pk=None):
+        user = request.user
+
+        if request.data['password'] != request.data['password_confirmation']:
+            raise exceptions.ValidationError('Passwords do not match.')
+
+        serializer = UserSerializer(user, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
