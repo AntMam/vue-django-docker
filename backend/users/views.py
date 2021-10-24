@@ -1,12 +1,14 @@
-from rest_framework import exceptions, viewsets, status, generics, mixins
+from backend.pagination import CustomPagination
+from rest_framework import exceptions, generics, mixins, status, viewsets
 from rest_framework.decorators import api_view
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework.permissions import IsAuthenticated
-from . models import User, Permission, Role
-from . serializers import UserSerializer, PermissionSerializer, RoleSerializer
-from . authentication import generate_access_token, JWTAuthentication
-from backend.pagination import CustomPagination
+
+from .authentication import JWTAuthentication, generate_access_token
+from .models import Permission, Role, User
+from .serializers import PermissionSerializer, RoleSerializer, UserSerializer
+from .permissions import ViewPermissions
 
 @api_view(['GET'])
 def register(request):
@@ -75,7 +77,8 @@ class PermissionAPIView(APIView):
 
 class RoleViewSet(viewsets.ViewSet):
     authentication_classes = [JWTAuthentication]
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated & ViewPermissions]
+    permission_object = 'roles'
 
     def list(self, request):
         serializer = RoleSerializer(Role.objects.all(), many=True)
@@ -117,12 +120,13 @@ class RoleViewSet(viewsets.ViewSet):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 class UserGenericAPIView(
-    generics.GenericAPIView, mixins.ListModelMixin, 
+    generics.GenericAPIView, mixins.ListModelMixin, mixins.CreateModelMixin, 
     mixins.RetrieveModelMixin, mixins.UpdateModelMixin, mixins.DestroyModelMixin
     ):
 
     authentication_classes = [JWTAuthentication]
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated & ViewPermissions]
+    permission_object = 'users'
     queryset = User.objects.all()
     serializer_class = UserSerializer
     pagination_class = CustomPagination
