@@ -10,7 +10,7 @@ from .models import Permission, Role, User
 from .serializers import PermissionSerializer, RoleSerializer, UserSerializer
 from .permissions import ViewPermissions
 
-@api_view(['GET'])
+@api_view(['POST'])
 def register(request):
     data = request.data
     if data['password'] != data['password_confirm']:
