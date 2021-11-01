@@ -13,8 +13,10 @@ from .permissions import ViewPermissions
 @api_view(['POST'])
 def register(request):
     data = request.data
+
     if data['password'] != data['password_confirm']:
         raise exceptions.APIException('Passwords do not match.')
+        
     serializer = UserSerializer(data=data)
     serializer.is_valid(raise_exception=True)
     serializer.save()
