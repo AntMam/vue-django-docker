@@ -6,14 +6,14 @@ The app allows you to create users with different permissions, products, and vie
 The dashboard chart receives data from the 'chart/' endpoint and maps it using the c3.js library. 
 
 
-#Steps to run:
+# Steps to run:
 
-##Backend
+## Backend
 
 1. cd backend
 2. docker-compose up
 
-##Frontend
+## Frontend
 
 1. cd frontend
 2. npm run serve
