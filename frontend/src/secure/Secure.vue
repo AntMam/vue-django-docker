@@ -13,8 +13,8 @@
 </template>
 
 <script lang='ts'>
-import Menu from "@/secure/components/Menu";
-import Nav from "@/secure/components/Nav";
+import Menu from "@/secure/components/Menu.vue";
+import Nav from "@/secure/components/Nav.vue";
 import axios from "axios";
 import { useRouter } from "vue-router";
 import { ref, onMounted } from "vue";
@@ -36,7 +36,7 @@ export default {
       try {
         const response = await axios.get("user/");
         
-        const u: User = response.data.data
+        const u = response.data.data
 
         await store.dispatch('User/setUser', new User(
           u.id,
