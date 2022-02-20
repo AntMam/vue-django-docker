@@ -16,7 +16,7 @@
       <label>Image</label>
       <div class="input-group-append">
         <input type="text" class="form-control" name="Image" v-model="image" />
-        <ImageUpload @file-uploaded="image = $event" />
+        <ImageUpload @file-uploaded="images = $event" />
       </div>
     </div>
     <div class="form-group">
@@ -40,7 +40,7 @@ export default {
   setup() {
     const title = ref("");
     const description = ref("");
-    const image = ref("");
+    const images = ref([]);
     const price = ref(0);
     const router = useRouter();
 
@@ -48,7 +48,7 @@ export default {
       await axios.post("products/", {
         title: title.value,
         description: description.value,
-        image: image.value,
+        images: images.value,
         price: price.value,
       });
 
@@ -58,7 +58,7 @@ export default {
     return {
       title,
       description,
-      image,
+      images,
       price,
       submit,
     };
