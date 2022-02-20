@@ -1,0 +1,26 @@
+version: '3.8'
+services:
+  api:
+    container_name: django_vue_api
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - .:/app
+    ports:
+      - 8001:8001
+    depends_on:
+      - db
+
+  db:
+    container_name: django_vue_admin_db
+    image: postgres
+    restart: always
+    environment:
+      POSTGRES_DB: django_admin
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: root
+    volumes:
+      - .dbdata:/var/lib/postgres
+    ports:
+      - 54322:5432
